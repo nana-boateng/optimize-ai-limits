@@ -4,7 +4,7 @@ Automatically maximize your token usage on Anthropic's AI coding tools by ensuri
 
 ## Why This Exists
 
-Codex CLI and Claude Code both enforce rolling rate limits: a **5-hour window** and a **weekly window**. When you hit a limit, the timer counts down to a reset — but the fresh allocation only begins when you **actually send your next prompt**. If your 5-hour window resets at 6:00 AM and you don't open your terminal until 9:00 AM, you've silently lost 3 hours of available capacity.
+Codex CLI and Claude Code both enforce rolling rate limits: a **5-hour window** and a **weekly window**. When you hit a limit, the timer counts down to a reset — but the fresh allocation only begins when you **actually send your next prompt**. If your 5-hour window resets at 6:00 AM and you don't open your terminal until 9:00 AM, your NEXT rest window won't be until 2pm. With this tool active, your next window will be available at 11am.
 
 This tool fixes that. It:
 
@@ -35,6 +35,10 @@ The result: your rate-limit windows overlap seamlessly. You get the maximum avai
 │  5. launchd wakes us → go to step 1                  │
 └──────────────────────────────────────────────────────┘
 ```
+
+After a single `npm run run`, the timer runs itself indefinitely via `launchd`. Each cycle writes a new plist with the next wake time and re-registers it — no persistent process, no cron job.
+
+If your Mac is off or asleep when a scheduled reset passes, the job runs automatically on next login (`RunAtLoad` is enabled). It detects that windows have already reset, sends the keep-alive prompts, and resumes the normal scheduling chain.
 
 ### Data Sources
 
@@ -210,8 +214,8 @@ ai-limit-timer/
 
 ## Troubleshooting
 
-**"Codex prime completed but no rate-limit data was found"**
-Codex hasn't written rate-limit data to its session logs yet. Run Codex manually once so it creates a session with `token_count` payloads, then retry.
+**Codex shows "prime-fallback" instead of "session-log"**
+Codex doesn't always include rate-limit timestamps in session logs for small prompts. The timer still works — it estimates `now + 5h` and schedules accordingly. You'll get exact timestamps again once you use Codex interactively and it writes `rate_limits` data to its session logs.
 
 **Claude prime fails or times out**
 - Ensure `workspaceDir` points to a directory you've previously trusted in Claude Code's interactive mode.
@@ -228,7 +232,7 @@ Check `./var/launchd.stdout.log` and `./var/launchd.stderr.log` for the launchd-
 
 ## How the Fallback Works
 
-When Claude's `stream-json` output doesn't contain a `rate_limit_event` (which happens when the response completes before rate-limit info is emitted), the timer uses a conservative fallback:
+When exact rate-limit data isn't available — Claude's `stream-json` doesn't contain a `rate_limit_event`, or Codex's session log has `rate_limits: null` for small prompts — the timer uses a conservative fallback for that provider:
 
 - **5-hour window**: estimated as `now + 5 hours`
 - **Weekly window**: preserved from the previous known value if it hasn't expired, otherwise estimated as `now + 7 days`
