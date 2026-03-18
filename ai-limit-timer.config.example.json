@@ -1,0 +1,31 @@
+{
+  "stateDir": "./var",
+  "scheduler": {
+    "type": "launchd",
+    "label": "com.shnksi.ai-limit-timer",
+    "launchAgentPath": "~/Library/LaunchAgents/com.shnksi.ai-limit-timer.plist",
+    "runDelayAfterResetSeconds": 60
+  },
+  "codex": {
+    "enabled": true,
+    "command": "codex",
+    "sessionRoot": "~/.codex/sessions",
+    "workspaceDir": ".",
+    "prompt": "Reply with exactly OK.",
+    "timeoutMs": 180000,
+    "extraArgs": []
+  },
+  "claude": {
+    "enabled": true,
+    "command": "claude",
+    "workspaceDir": ".",
+    "prompt": "Reply with exactly OK.",
+    "timeoutMs": 180000,
+    "primeExtraArgs": [
+      "--no-session-persistence",
+      "--tools",
+      "",
+      "--no-chrome"
+    ]
+  }
+}

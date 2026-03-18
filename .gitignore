@@ -1,0 +1,4 @@
+node_modules/
+var/
+ai-limit-timer.config.json
+.claude/

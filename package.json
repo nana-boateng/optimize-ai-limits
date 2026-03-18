@@ -1,0 +1,13 @@
+{
+  "name": "ai-limit-timer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "run": "node ./src/ai-limit-timer.mjs run",
+    "status": "node ./src/ai-limit-timer.mjs status",
+    "install": "node ./src/ai-limit-timer.mjs install-launchd",
+    "uninstall": "node ./src/ai-limit-timer.mjs uninstall-launchd",
+    "test": "node --test"
+  }
+}
