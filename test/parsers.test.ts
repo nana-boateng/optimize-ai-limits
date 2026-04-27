@@ -1,10 +1,7 @@
-import test from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
 
-import {
-  parseClaudeStreamJson,
-  parseCodexRateLimitsJsonl,
-} from "../src/parsers.mjs";
+import { parseClaudeStreamJson, parseCodexRateLimitsJsonl } from "../src/parsers.js";
 
 test("parseCodexRateLimitsJsonl reads the newest token_count rate limit line", () => {
   const jsonl = [
@@ -14,11 +11,11 @@ test("parseCodexRateLimitsJsonl reads the newest token_count rate limit line", (
 
   const parsed = parseCodexRateLimitsJsonl(jsonl, "/tmp/fake.jsonl");
   assert.ok(parsed);
-  assert.equal(parsed.primary.label, "5h");
-  assert.equal(parsed.primary.resetsAtMs, 1773626400 * 1000);
-  assert.equal(parsed.secondary.label, "weekly");
-  assert.equal(parsed.secondary.resetsAtMs, 1774208400 * 1000);
-  assert.equal(parsed.rawPath, "/tmp/fake.jsonl");
+  assert.equal(parsed?.primary?.label, "5h");
+  assert.equal(parsed?.primary?.resetsAtMs, 1773626400 * 1000);
+  assert.equal(parsed?.secondary?.label, "weekly");
+  assert.equal(parsed?.secondary?.resetsAtMs, 1774208400 * 1000);
+  assert.equal((parsed as { rawPath?: string }).rawPath, "/tmp/fake.jsonl");
 });
 
 test("parseClaudeStreamJson extracts rate_limit_event from stream-json output", () => {
@@ -31,36 +28,34 @@ test("parseClaudeStreamJson extracts rate_limit_event from stream-json output", 
 
   const parsed = parseClaudeStreamJson(stdout);
   assert.ok(parsed);
-  assert.equal(parsed.provider, "claude");
-  assert.equal(parsed.source, "stream-json");
-  assert.ok(parsed.primary);
-  assert.equal(parsed.primary.label, "5h");
-  assert.equal(parsed.primary.windowMinutes, 300);
-  assert.equal(parsed.primary.resetsAtMs, 1773730800 * 1000);
-  assert.ok(parsed.secondary);
-  assert.equal(parsed.secondary.label, "weekly");
-  assert.equal(parsed.secondary.windowMinutes, 10080);
-  assert.equal(parsed.secondary.resetsAtMs, 1775001600 * 1000);
+  assert.equal(parsed?.provider, "claude");
+  assert.equal(parsed?.source, "stream-json");
+  assert.ok(parsed?.primary);
+  assert.equal(parsed?.primary?.label, "5h");
+  assert.equal(parsed?.primary?.windowMinutes, 300);
+  assert.equal(parsed?.primary?.resetsAtMs, 1773730800 * 1000);
+  assert.ok(parsed?.secondary);
+  assert.equal(parsed?.secondary?.label, "weekly");
+  assert.equal(parsed?.secondary?.windowMinutes, 10080);
+  assert.equal(parsed?.secondary?.resetsAtMs, 1775001600 * 1000);
 });
 
 test("parseClaudeStreamJson returns null when no rate_limit_event present", () => {
-  const stdout = [
-    '{"type":"system","subtype":"init"}',
-    '{"type":"result","subtype":"success"}',
-  ].join("\n");
+  const stdout = ['{"type":"system","subtype":"init"}', '{"type":"result","subtype":"success"}'].join("\n");
 
   const parsed = parseClaudeStreamJson(stdout);
   assert.equal(parsed, null);
 });
 
 test("parseClaudeStreamJson handles primary-only rate limit", () => {
-  const stdout = '{"type":"rate_limit_event","rate_limit_info":{"status":"allowed","resetsAt":1773730800,"rateLimitType":"five_hour"}}';
+  const stdout =
+    '{"type":"rate_limit_event","rate_limit_info":{"status":"allowed","resetsAt":1773730800,"rateLimitType":"five_hour"}}';
 
   const parsed = parseClaudeStreamJson(stdout);
   assert.ok(parsed);
-  assert.ok(parsed.primary);
-  assert.equal(parsed.primary.resetsAtMs, 1773730800 * 1000);
-  assert.equal(parsed.secondary, null);
+  assert.ok(parsed?.primary);
+  assert.equal(parsed?.primary?.resetsAtMs, 1773730800 * 1000);
+  assert.equal(parsed?.secondary, null);
 });
 
 test("parseClaudeStreamJson skips malformed JSON lines", () => {
@@ -72,8 +67,8 @@ test("parseClaudeStreamJson skips malformed JSON lines", () => {
 
   const parsed = parseClaudeStreamJson(stdout);
   assert.ok(parsed);
-  assert.equal(parsed.primary.resetsAtMs, 1773730800 * 1000);
-  assert.equal(parsed.secondary.resetsAtMs, 1775001600 * 1000);
+  assert.equal(parsed?.primary?.resetsAtMs, 1773730800 * 1000);
+  assert.equal(parsed?.secondary?.resetsAtMs, 1775001600 * 1000);
 });
 
 test("parseClaudeStreamJson returns null for empty input", () => {

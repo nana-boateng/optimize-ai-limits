@@ -10,7 +10,7 @@ This tool fixes that. It:
 
 1. **Reads exact reset timestamps** from Codex session logs and Claude's stream output
 2. **Sends a minimal keep-alive prompt** ("Reply with exactly OK.") right after each reset, so your next window starts immediately
-3. **Self-schedules via macOS `launchd`** to wake up at the next reset time — no cron jobs, no always-on process
+3. **Self-schedules** using **macOS `launchd`** or **Linux `systemd` user timers** to wake at the next reset time — no cron jobs, no always-on process
 
 The result: your rate-limit windows overlap seamlessly. You get the maximum available token budget without ever having to think about reset timing.
 
@@ -30,13 +30,14 @@ The result: your rate-limit windows overlap seamlessly. You get the maximum avai
 │                                                      │
 │  3. Compute next reset time (earliest across both)   │
 │                                                      │
-│  4. Write launchd plist → sleep until then + 60s     │
+│  4. Install OS scheduler (launchd plist or systemd)   │
+│     → run after reset + 60s                           │
 │                                                      │
-│  5. launchd wakes us → go to step 1                  │
+│  5. OS scheduler wakes the tool → go to step 1       │
 └──────────────────────────────────────────────────────┘
 ```
 
-After a single `npm run run`, the timer runs itself indefinitely via `launchd`. Each cycle writes a new plist with the next wake time and re-registers it — no persistent process, no cron job.
+After a single `npm run run`, the timer runs itself indefinitely (via `launchd` on macOS or `systemd` on Linux). Each cycle updates the next wake time in the job units — no persistent daemon or cron in your project directory.
 
 If your Mac is off or asleep when a scheduled reset passes, the job runs automatically on next login (`RunAtLoad` is enabled). It detects that windows have already reset, sends the keep-alive prompts, and resumes the normal scheduling chain.
 
@@ -49,7 +50,7 @@ If your Mac is off or asleep when a scheduled reset passes, the job runs automat
 
 ## Requirements
 
-- **macOS** (uses `launchd` for scheduling)
+- **macOS** (`scheduler.type: "launchd"`) or **Linux** with **systemd** user services (`scheduler.type: "systemd"`)
 - **Node.js** v18+
 - **Codex CLI** (`codex`) — [install guide](https://github.com/openai/codex)
 - **Claude Code** (`claude`) — [install guide](https://docs.anthropic.com/en/docs/claude-code)
@@ -86,9 +87,11 @@ Edit `ai-limit-timer.config.json`. The critical setting is `workspaceDir` for ea
 
 **Important:** For Claude, use a directory you've already opened and trusted in interactive mode. Otherwise the trust prompt will block the automated run.
 
-### 3. First run
+### 3. Build and first run
 
 ```bash
+npm install
+npm run build
 npm run run
 ```
 
@@ -96,7 +99,7 @@ This will:
 - Check current reset times for both providers
 - Send a keep-alive prompt if any window has already reset
 - Save state to `./var/state.json`
-- Install a `launchd` job to wake up at the next reset time
+- Install the next wake via **launchd** (macOS) or **systemd** user units (Linux), per `scheduler` in your config
 
 ### 4. Verify
 
@@ -122,12 +125,19 @@ From here, the timer manages itself. It will wake up after each reset, send the 
 
 | Command | Description |
 |---------|-------------|
+| `npm run build` | Compile TypeScript to `dist/` (required before `run` in a fresh clone) |
 | `npm run run` | Execute one cycle: check resets, prime if due, schedule next run |
 | `npm run status` | Show current reset times and next scheduled run |
 | `npm run status -- --json` | Output status as JSON |
-| `npm run install` | Install/update the `launchd` daemon from saved state |
-| `npm run uninstall` | Remove the `launchd` daemon |
-| `npm test` | Run parser unit tests |
+| `npm run timer:install` | Install/update the scheduler job (launchd or systemd) from saved state |
+| `npm run timer:uninstall` | Remove the scheduled job (launchd or systemd) |
+| `npm run install-launchd` | Same as `timer:install` when `scheduler.type` is `launchd` (macOS) |
+| `npm run uninstall-launchd` | Same as `timer:uninstall` for `launchd` |
+| `npm run install-systemd` | Same as `timer:install` when `scheduler.type` is `systemd` (Linux) |
+| `npm run uninstall-systemd` | Same as `timer:uninstall` for `systemd` |
+| `npm test` | Build and run parser unit tests |
+
+**Note:** A plain `npm install` in this project only installs Node dependencies. It does **not** register OS jobs — use `npm run timer:install` (after `build`) for that. The `npm` lifecycle name `install` is intentionally **not** used as a script name here, so dependency installs do not side-effect into `launchd` or `systemd`.
 
 ## Configuration
 
@@ -139,13 +149,11 @@ All settings in `ai-limit-timer.config.json`. Only `workspaceDir` is required �
   "stateDir": "./var",
 
   "scheduler": {
+    // "launchd" on macOS, "systemd" on Linux (defaults if omitted: darwin -> launchd, linux -> systemd)
     "type": "launchd",
-    // Unique identifier for the launchd job
     "label": "com.shnksi.ai-limit-timer",
-    // Where the plist file gets written
     "launchAgentPath": "~/Library/LaunchAgents/com.shnksi.ai-limit-timer.plist",
-    // Seconds to wait after a reset before sending the keep-alive prompt.
-    // Avoids hitting the exact transition boundary.
+    "userUnitDir": "~/.config/systemd/user",
     "runDelayAfterResetSeconds": 60
   },
 
@@ -198,10 +206,18 @@ Set `"enabled": false` to skip either provider entirely:
 ```
 ai-limit-timer/
 ├── src/
-│   ├── ai-limit-timer.mjs    # Main entrypoint: CLI, scheduling, orchestration
-│   └── parsers.mjs            # Extracts reset timestamps from Codex/Claude output
+│   ├── ai-limit-timer.ts      # Main entrypoint: CLI, scheduling, orchestration
+│   ├── config.ts
+│   ├── hardening.ts
+│   ├── parsers.ts
+│   ├── run-child.ts
+│   └── scheduler/
+│       ├── launchd.ts
+│       ├── shared.ts
+│       └── systemd.ts
+├── dist/                      # Created by `npm run build` (not committed)
 ├── test/
-│   └── parsers.test.mjs       # Unit tests for parsers
+│   └── parsers.test.ts
 ├── var/                        # Runtime data (gitignored)
 │   ├── state.json              # Persisted reset times and next run
 │   ├── logs/                   # Stdout/stderr from each keep-alive prompt
@@ -223,6 +239,9 @@ Codex doesn't always include rate-limit timestamps in session logs for small pro
 
 **"launchd scheduling requires a local macOS user session"**
 The tool must run as a logged-in user, not as root or via SSH without a GUI session. `launchd` user agents require a GUI login context.
+
+**`systemd` / `systemctl --user` fails (Linux)**
+The scheduled units install under the **user** manager. You need a logind user session, `XDG_RUNTIME_DIR` set, and often `loginctl enable-linger <user>` for headless/SSH hosts. The timer uses `OnCalendar` in **local** time, matching the previous launchd behavior.
 
 **Next run time seems wrong**
 The timer picks the earliest reset across all providers and adds `runDelayAfterResetSeconds` (default: 60s). Check `npm run status -- --json` to see exact timestamps and verify which provider is driving the schedule.

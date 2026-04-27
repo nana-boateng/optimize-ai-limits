@@ -4,10 +4,20 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "run": "node ./src/ai-limit-timer.mjs run",
-    "status": "node ./src/ai-limit-timer.mjs status",
-    "install": "node ./src/ai-limit-timer.mjs install-launchd",
-    "uninstall": "node ./src/ai-limit-timer.mjs uninstall-launchd",
-    "test": "node --test"
+    "build": "tsc -p .",
+    "typecheck": "tsc -p . --noEmit",
+    "run": "node dist/src/ai-limit-timer.js run",
+    "status": "node dist/src/ai-limit-timer.js status",
+    "timer:install": "node dist/src/ai-limit-timer.js install",
+    "timer:uninstall": "node dist/src/ai-limit-timer.js uninstall",
+    "install-launchd": "node dist/src/ai-limit-timer.js install-launchd",
+    "uninstall-launchd": "node dist/src/ai-limit-timer.js uninstall-launchd",
+    "install-systemd": "node dist/src/ai-limit-timer.js install-systemd",
+    "uninstall-systemd": "node dist/src/ai-limit-timer.js uninstall-systemd",
+    "test": "npm run build && node --test dist/test/parsers.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "typescript": "^5.8.0"
   }
 }

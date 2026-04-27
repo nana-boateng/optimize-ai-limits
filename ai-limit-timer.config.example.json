@@ -4,6 +4,7 @@
     "type": "launchd",
     "label": "com.shnksi.ai-limit-timer",
     "launchAgentPath": "~/Library/LaunchAgents/com.shnksi.ai-limit-timer.plist",
+    "userUnitDir": "~/.config/systemd/user",
     "runDelayAfterResetSeconds": 60
   },
   "codex": {
