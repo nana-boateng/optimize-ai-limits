@@ -8,7 +8,7 @@ import { assertAbsoluteResolved, assertConfigPathString } from "./hardening.js";
 const DEFAULT_CONFIG_FILE = "ai-limit-timer.config.json";
 const DEFAULT_STATE_DIR = "var";
 const DEFAULT_PROMPT = "Reply with exactly OK.";
-const DEFAULT_LAUNCH_LABEL = "com.shnksi.ai-limit-timer";
+const DEFAULT_LAUNCH_LABEL = "com.github.nana-boateng.ai-limit-timer";
 const DEFAULT_SYSTEMD_USER_UNIT_DIR = "~/.config/systemd/user";
 
 export type SchedulerType = "launchd" | "systemd";

@@ -2,8 +2,8 @@
   "stateDir": "./var",
   "scheduler": {
     "type": "launchd",
-    "label": "com.shnksi.ai-limit-timer",
-    "launchAgentPath": "~/Library/LaunchAgents/com.shnksi.ai-limit-timer.plist",
+    "label": "com.github.nana-boateng.ai-limit-timer",
+    "launchAgentPath": "~/Library/LaunchAgents/com.github.nana-boateng.ai-limit-timer.plist",
     "userUnitDir": "~/.config/systemd/user",
     "runDelayAfterResetSeconds": 60
   },

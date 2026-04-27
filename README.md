@@ -183,8 +183,8 @@ All settings in `ai-limit-timer.config.json` (or the path in `--config` / **`AI_
   "scheduler": {
     // "launchd" on macOS, "systemd" on Linux (defaults if omitted: darwin -> launchd, linux -> systemd)
     "type": "launchd",
-    "label": "com.shnksi.ai-limit-timer",
-    "launchAgentPath": "~/Library/LaunchAgents/com.shnksi.ai-limit-timer.plist",
+    "label": "com.github.nana-boateng.ai-limit-timer",
+    "launchAgentPath": "~/Library/LaunchAgents/com.github.nana-boateng.ai-limit-timer.plist",
     "userUnitDir": "~/.config/systemd/user",
     "runDelayAfterResetSeconds": 60
   },
@@ -276,6 +276,9 @@ optimize-ai-limits/
 ```
 
 ## Troubleshooting
+
+**Migrating from `com.shnksi.ai-limit-timer` (old default label)**
+The default `scheduler.label` and `launchAgentPath` are now `com.github.nana-boateng.ai-limit-timer` (see `config.ts`). If you still have a job under the old name: (1) point your config at the **old** `label` and run `npm run timer:uninstall` to remove it, (2) update `label` / `launchAgentPath` in `ai-limit-timer.config.json` to the new values, (3) run `npm run timer:install`. On Linux, systemd user units are named from `label` too—`systemctl --user list-units '*ai-limit-timer*'` to find old units, then `disable --now` as needed.
 
 **Codex shows "prime-fallback" instead of "session-log"**
 Codex doesn't always include rate-limit timestamps in session logs for small prompts. The timer still works — it estimates `now + 5h` and schedules accordingly. You'll get exact timestamps again once you use Codex interactively and it writes `rate_limits` data to its session logs.
