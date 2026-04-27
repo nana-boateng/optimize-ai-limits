@@ -1,6 +1,8 @@
 # AI Limit Timer
 
-Automatically maximize your token usage on Anthropic's AI coding tools by ensuring you never lose time to rate-limit reset windows.
+**Version 0.1.0** — CLI tool (TypeScript → Node.js) that automatically maximizes your token usage on Anthropic’s AI coding tools by reducing lost time to rate-limit reset windows.
+
+**Stack:** TypeScript (strict), Node built-ins only at runtime; macOS (`launchd`) and Linux (`systemd` user units) for scheduling. Source: `src/`, output: `dist/` after `npm run build`.
 
 ## Why This Exists
 
@@ -50,20 +52,20 @@ If your Mac is off or asleep when a scheduled reset passes, the job runs automat
 
 ## Requirements
 
-- **macOS** (`scheduler.type: "launchd"`) or **Linux** with **systemd** user services (`scheduler.type: "systemd"`)
-- **Node.js** v18+
+- **macOS** (`scheduler.type: "launchd"`) or **Linux** with **systemd** for user services (`scheduler.type: "systemd"`)
+- **Node.js** **20.x or 22.x** (used in CI); **18+** may work but is not CI-guaranteed
 - **Codex CLI** (`codex`) — [install guide](https://github.com/openai/codex)
 - **Claude Code** (`claude`) — [install guide](https://docs.anthropic.com/en/docs/claude-code)
 
-### Supported platforms (M1)
+### Supported platforms (this version)
 
-| | In scope for M1 | Not targeted in M1 |
+| | Supported | Not in scope for this release |
 |---|-----------------|------------------------|
 | **OS** | **macOS** and **Linux** (glibc-based distros with `systemd` for user timers) | **Windows** (native) |
-| **Environment** | Bare metal, VM, or container (see [docs/docker.md](docs/docker.md)) | **WSL2** and **graphical** installers as *supported* test targets (may work, not guaranteed) |
+| **Environment** | Bare metal, VM, or container (see [docs/docker.md](docs/docker.md)) | **WSL2** as a *guaranteed* target (may work; not covered by tests) |
 | **UI** | CLI only | Web UI or desktop GUI |
 
-M2+ may expand Linux scheduler backends, a public container registry, and other delivery options; see the repo milestones.
+Planned follow-ups (milestones in this repo) include a published container image, additional Linux scheduler options, and other delivery work—not part of 0.1.0.
 
 **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md) (dev loop, CI, and tooling).
 
@@ -72,9 +74,11 @@ M2+ may expand Linux scheduler backends, a public container registry, and other 
 ### 1. Clone and configure
 
 ```bash
-git clone https://github.com/shnksi/ai-limit-timer.git
-cd ai-limit-timer
+git clone https://github.com/nana-boateng/optimize-ai-limits.git
+cd optimize-ai-limits
 ```
+
+The npm package name is `ai-limit-timer`; the git repository is **`optimize-ai-limits`**.
 
 Copy the example config and edit it:
 
@@ -147,16 +151,19 @@ From here, the timer manages itself. It will wake up after each reset, send the 
 | `npm run uninstall-launchd` | Same as `timer:uninstall` for `launchd` |
 | `npm run install-systemd` | Same as `timer:install` when `scheduler.type` is `systemd` (Linux) |
 | `npm run uninstall-systemd` | Same as `timer:uninstall` for `systemd` |
-| `npm test` | Build and run unit tests |
+| `npm run typecheck` | Typecheck only (no `dist/` write) |
+| `npm test` | Build, then run unit tests (`parsers`, scheduler helpers, config/env, spawn errors) |
 
-**Note:** A plain `npm install` in this project only installs Node dependencies. It does **not** register OS jobs — use `npm run timer:install` (after `build`) for that. The `npm` lifecycle name `install` is intentionally **not** used as a script name here, so dependency installs do not side-effect into `launchd` or `systemd`.
+**Note:** A plain `npm install` in this project only installs Node dependencies. It does **not** register OS jobs — use `npm run timer:install` (after `build`) for that. The `npm` lifecycle name `install` is intentionally **not** used as a script name, so `npm install` does not run `launchd` or `systemd` registration.
 
-## Docker (M1, in-repo only)
+**CI** (GitHub Actions on `main` / PRs): `npm test` on Ubuntu and macOS (Node 20 and 22), plus a `docker build` smoke check on Linux.
 
-- **Build an image:** `docker build -t ai-limit-timer:local .`
-- **How to run** (mounts, `codex` / `claude` paths, and scheduling vs host): see **[docs/docker.md](docs/docker.md)**.
+## Docker (in-repo image)
 
-M1 only ships a `Dockerfile` and this doc; a **registry image** and tags are planned for the **M2** milestone.
+- **Build:** `docker build -t ai-limit-timer:local .`
+- **Run, mounts, `codex` / `claude`, `AI_LIMIT_TIMER_CONFIG`:** see **[docs/docker.md](docs/docker.md)**.
+
+The repo ships a `Dockerfile` only (no public registry in this release). Pushing a versioned image (e.g. GHCR) is tracked as a separate milestone in the project.
 
 ### Environment variables
 
@@ -166,7 +173,7 @@ M1 only ships a `Dockerfile` and this doc; a **registry image** and tags are pla
 
 ## Configuration
 
-All settings in `ai-limit-timer.config.json`. Only `workspaceDir` is required — everything else has sensible defaults.
+All settings in `ai-limit-timer.config.json` (or the path in `--config` / **`AI_LIMIT_TIMER_CONFIG`**). You must set each enabled provider’s **`workspaceDir`**; everything else has defaults chosen for your OS (`scheduler.type` defaults to `launchd` on macOS and `systemd` on Linux).
 
 ```jsonc
 {
@@ -229,11 +236,15 @@ Set `"enabled": false` to skip either provider entirely:
 ## File Structure
 
 ```
-ai-limit-timer/
-├── Dockerfile                 # M1: optional container build (no registry in M1)
+optimize-ai-limits/
+├── .github/
+│   └── workflows/
+│       └── ci.yml              # npm test + docker build
+├── Dockerfile
 ├── .dockerignore
+├── tsconfig.json
 ├── src/
-│   ├── ai-limit-timer.ts      # Main entrypoint: CLI, scheduling, orchestration
+│   ├── ai-limit-timer.ts      # CLI entry, orchestration, providers
 │   ├── config.ts
 │   ├── hardening.ts
 │   ├── parsers.ts
@@ -245,16 +256,22 @@ ai-limit-timer/
 ├── docs/
 │   └── docker.md
 ├── CONTRIBUTING.md
-├── dist/                      # Created by `npm run build` (not committed)
+├── dist/                       # tsc output (not committed)
 ├── test/
-│   └── parsers.test.ts
+│   ├── parsers.test.ts
+│   ├── scheduler.test.ts
+│   └── config-path.test.ts
 ├── var/                        # Runtime data (gitignored)
-│   ├── state.json              # Persisted reset times and next run
-│   ├── logs/                   # Stdout/stderr from each keep-alive prompt
-│   └── transcripts/            # Raw Claude usage captures
+│   ├── state.json
+│   ├── logs/                   # Per-run codex-prime / claude-prime logs
+│   ├── launchd.stdout.log     # macOS, when using launchd
+│   ├── launchd.stderr.log
+│   ├── systemd.stdout.log     # Linux, when using systemd
+│   └── systemd.stderr.log
 ├── ai-limit-timer.config.example.json
-├── ai-limit-timer.config.json  # Your local config (gitignored)
+├── ai-limit-timer.config.json  # Local config (gitignored)
 ├── package.json
+├── package-lock.json
 └── LICENSE
 ```
 
@@ -267,17 +284,21 @@ Codex doesn't always include rate-limit timestamps in session logs for small pro
 - Ensure `workspaceDir` points to a directory you've previously trusted in Claude Code's interactive mode.
 - Check `./var/logs/claude-prime-*.log` for the full stdout/stderr.
 
+**Could not start `"codex"` or `"claude"`: not on PATH or not executable**
+Install the tools or set an **absolute** path in `codex.command` / `claude.command`. The app does not use a shell; only a real executable path or a name found on your `PATH` will work.
+
 **"launchd scheduling requires a local macOS user session"**
 The tool must run as a logged-in user, not as root or via SSH without a GUI session. `launchd` user agents require a GUI login context.
 
 **`systemd` / `systemctl --user` fails (Linux)**
-The scheduled units install under the **user** manager. You need a logind user session, `XDG_RUNTIME_DIR` set, and often `loginctl enable-linger <user>` for headless/SSH hosts. The timer uses `OnCalendar` in **local** time, matching the previous launchd behavior.
+The scheduled units install under the **user** manager. You need a logind user session, `XDG_RUNTIME_DIR` set, and often `loginctl enable-linger <user>` for headless/SSH hosts. The timer uses `OnCalendar` in **local** time (weekday + date and time) for the next run.
 
 **Next run time seems wrong**
-The timer picks the earliest reset across all providers and adds `runDelayAfterResetSeconds` (default: 60s). Check `npm run status -- --json` to see exact timestamps and verify which provider is driving the schedule.
+The timer picks the earliest reset across all enabled providers and adds `runDelayAfterResetSeconds` (default: 60s). Check `npm run status -- --json` to see exact timestamps and which provider is driving the schedule.
 
 **Want to see what happened on the last run?**
-Check `./var/launchd.stdout.log` and `./var/launchd.stderr.log` for the launchd-triggered output, or browse `./var/logs/` for per-provider execution logs.
+- **macOS:** `./var/launchd.stdout.log` and `./var/launchd.stderr.log` (scheduler), plus `./var/logs/` for each prime attempt.
+- **Linux:** `./var/systemd.stdout.log` and `./var/systemd.stderr.log` (scheduler), plus `./var/logs/` for per-provider runs.
 
 ## How the Fallback Works
 
