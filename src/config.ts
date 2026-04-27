@@ -235,8 +235,22 @@ function finalizeConfig(config: ReturnType<typeof defaultConfig> & { configPath?
 
 export { DEFAULT_CONFIG_FILE, DEFAULT_PROMPT, DEFAULT_LAUNCH_LABEL };
 
+/**
+ * Resolves the config file path. Precedence: CLI `--config`, then `AI_LIMIT_TIMER_CONFIG`, then `ai-limit-timer.config.json`.
+ */
+export function resolveConfigPathFromEnv(cliConfigPath: string | null) {
+  if (cliConfigPath != null && cliConfigPath !== "") {
+    return cliConfigPath;
+  }
+  const fromEnv = process.env.AI_LIMIT_TIMER_CONFIG?.trim();
+  if (fromEnv) {
+    return fromEnv;
+  }
+  return DEFAULT_CONFIG_FILE;
+}
+
 export async function loadConfig(configPathArg: string | null) {
-  const configPath = absoluteFrom(process.cwd(), configPathArg ?? DEFAULT_CONFIG_FILE);
+  const configPath = absoluteFrom(process.cwd(), resolveConfigPathFromEnv(configPathArg));
   const base = defaultConfig(configPath);
   if (await pathExists(configPath)) {
     const raw = await fsp.readFile(configPath, "utf8");

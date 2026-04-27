@@ -55,6 +55,18 @@ If your Mac is off or asleep when a scheduled reset passes, the job runs automat
 - **Codex CLI** (`codex`) — [install guide](https://github.com/openai/codex)
 - **Claude Code** (`claude`) — [install guide](https://docs.anthropic.com/en/docs/claude-code)
 
+### Supported platforms (M1)
+
+| | In scope for M1 | Not targeted in M1 |
+|---|-----------------|------------------------|
+| **OS** | **macOS** and **Linux** (glibc-based distros with `systemd` for user timers) | **Windows** (native) |
+| **Environment** | Bare metal, VM, or container (see [docs/docker.md](docs/docker.md)) | **WSL2** and **graphical** installers as *supported* test targets (may work, not guaranteed) |
+| **UI** | CLI only | Web UI or desktop GUI |
+
+M2+ may expand Linux scheduler backends, a public container registry, and other delivery options; see the repo milestones.
+
+**Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md) (dev loop, CI, and tooling).
+
 ## Setup
 
 ### 1. Clone and configure
@@ -135,7 +147,7 @@ From here, the timer manages itself. It will wake up after each reset, send the 
 | `npm run uninstall-launchd` | Same as `timer:uninstall` for `launchd` |
 | `npm run install-systemd` | Same as `timer:install` when `scheduler.type` is `systemd` (Linux) |
 | `npm run uninstall-systemd` | Same as `timer:uninstall` for `systemd` |
-| `npm test` | Build and run parser unit tests |
+| `npm test` | Build and run unit tests |
 
 **Note:** A plain `npm install` in this project only installs Node dependencies. It does **not** register OS jobs — use `npm run timer:install` (after `build`) for that. The `npm` lifecycle name `install` is intentionally **not** used as a script name here, so dependency installs do not side-effect into `launchd` or `systemd`.
 
@@ -145,6 +157,12 @@ From here, the timer manages itself. It will wake up after each reset, send the 
 - **How to run** (mounts, `codex` / `claude` paths, and scheduling vs host): see **[docs/docker.md](docs/docker.md)**.
 
 M1 only ships a `Dockerfile` and this doc; a **registry image** and tags are planned for the **M2** milestone.
+
+### Environment variables
+
+| Variable | Effect |
+|----------|--------|
+| `AI_LIMIT_TIMER_CONFIG` | Path to the JSON config file if you do **not** pass `--config`. Handy in Docker, systemd units, or CI. The CLI still wins: `--config` overrides this. |
 
 ## Configuration
 
@@ -226,6 +244,7 @@ ai-limit-timer/
 │       └── systemd.ts
 ├── docs/
 │   └── docker.md
+├── CONTRIBUTING.md
 ├── dist/                      # Created by `npm run build` (not committed)
 ├── test/
 │   └── parsers.test.ts

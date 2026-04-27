@@ -14,7 +14,7 @@
     "uninstall-launchd": "node dist/src/ai-limit-timer.js uninstall-launchd",
     "install-systemd": "node dist/src/ai-limit-timer.js install-systemd",
     "uninstall-systemd": "node dist/src/ai-limit-timer.js uninstall-systemd",
-    "test:unit": "node --test dist/test/parsers.test.js dist/test/scheduler.test.js",
+    "test:unit": "node --test dist/test/parsers.test.js dist/test/scheduler.test.js dist/test/config-path.test.js",
     "test": "npm run build && npm run test:unit"
   },
   "devDependencies": {
