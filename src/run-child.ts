@@ -62,8 +62,16 @@ export function runCommand(command: string, args: string[], options: RunOptions 
       appendLimited("stderr", chunk);
     });
 
-    child.on("error", (error: Error) => {
+    child.on("error", (error: NodeJS.ErrnoException) => {
       clearTimeout(timer);
+      if (error.code === "ENOENT") {
+        reject(
+          new Error(
+            `Could not start "${command}": not found on PATH or not executable. Install the CLI or set an absolute path in config (e.g. codex.command). ${error.message}`,
+          ),
+        );
+        return;
+      }
       reject(error);
     });
 

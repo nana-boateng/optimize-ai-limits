@@ -34,11 +34,12 @@ docker run --rm \
   -v "$PWD/ai-limit-timer.config.json:/data/ai-limit-timer.config.json:ro" \
   -v "$PWD/var:/data/var" \
   -e HOME=/data \
+  -e AI_LIMIT_TIMER_CONFIG=/data/ai-limit-timer.config.json \
   ai-limit-timer:local \
-  status --config /data/ai-limit-timer.config.json
+  status
 ```
 
-`HOME=/data` makes `~/.codex` resolve under `/data` if you use `~` in the config.
+Using `AI_LIMIT_TIMER_CONFIG` matches how you can run the app without a long `CMD` (same precedence as the CLI: you can still pass `status --config /path/...` if you prefer). `HOME=/data` makes `~/.codex` resolve under `/data` if you use `~` in the config.
 
 ## Run: one cycle (`run`)
 
