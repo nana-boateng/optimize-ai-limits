@@ -33,3 +33,12 @@ jobs:
 
       - name: Test (build + unit tests)
         run: npm test
+
+  # Dockerfile smoke build (M1: no push to a registry)
+  docker-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Docker build
+        run: docker build -t ai-limit-timer:ci .

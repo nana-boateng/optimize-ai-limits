@@ -139,6 +139,13 @@ From here, the timer manages itself. It will wake up after each reset, send the 
 
 **Note:** A plain `npm install` in this project only installs Node dependencies. It does **not** register OS jobs — use `npm run timer:install` (after `build`) for that. The `npm` lifecycle name `install` is intentionally **not** used as a script name here, so dependency installs do not side-effect into `launchd` or `systemd`.
 
+## Docker (M1, in-repo only)
+
+- **Build an image:** `docker build -t ai-limit-timer:local .`
+- **How to run** (mounts, `codex` / `claude` paths, and scheduling vs host): see **[docs/docker.md](docs/docker.md)**.
+
+M1 only ships a `Dockerfile` and this doc; a **registry image** and tags are planned for the **M2** milestone.
+
 ## Configuration
 
 All settings in `ai-limit-timer.config.json`. Only `workspaceDir` is required — everything else has sensible defaults.
@@ -205,6 +212,8 @@ Set `"enabled": false` to skip either provider entirely:
 
 ```
 ai-limit-timer/
+├── Dockerfile                 # M1: optional container build (no registry in M1)
+├── .dockerignore
 ├── src/
 │   ├── ai-limit-timer.ts      # Main entrypoint: CLI, scheduling, orchestration
 │   ├── config.ts
@@ -215,6 +224,8 @@ ai-limit-timer/
 │       ├── launchd.ts
 │       ├── shared.ts
 │       └── systemd.ts
+├── docs/
+│   └── docker.md
 ├── dist/                      # Created by `npm run build` (not committed)
 ├── test/
 │   └── parsers.test.ts

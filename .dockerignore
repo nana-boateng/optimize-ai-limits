@@ -1,0 +1,26 @@
+# Dependencies and build output (rebuilt in image)
+node_modules
+dist
+
+# Local runtime & secrets
+var
+ai-limit-timer.config.json
+.claude
+.omx
+
+# VCS
+.git
+.github
+.gitignore
+
+# Docs not needed in build context
+docs
+
+# Not needed to compile
+LICENSE
+.editorconfig
+.prettierrc
+.eslintrc*
+eslint.config.*
+
+# Tests not copied into first stage? We need test/ in builder — do not ignore test/
